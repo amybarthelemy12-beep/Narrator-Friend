@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Narrator Friend — Manuscript Breakdown for Audiobook Narrators</title>
+  <title>Narrator Friend: Manuscript Breakdown for Audiobook Narrators</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     :root {
@@ -138,10 +138,10 @@
 <body>
   <header>
     <h1>Narrator Friend</h1>
-    <p class="tag">Drop a manuscript — PDF or Word — and get a per-chapter breakdown of dialogue, narration, dialogue tags, POV, and estimated recording time.</p>
+    <p class="tag">Drop a manuscript (PDF or Word) and get a per-chapter breakdown of dialogue, narration, dialogue tags, POV, and estimated recording time.</p>
     <p class="ai-free">
       <span class="pill">Built by humans · No AI</span>
-      Your manuscript is read by plain Python — no language models, no third-party services, no training on your text. Counted in memory, deleted on the spot.
+      Your manuscript is read by plain Python. No language models, no third-party services, no training on your text. Counted in memory, deleted on the spot.
     </p>
   </header>
 
@@ -151,7 +151,7 @@
         <input type="file" name="manuscript" id="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
         <label for="file" class="btn">Choose file</label>
         <p class="filename" id="filename">{% if filename %}{{ filename }}{% else %}or drop a .pdf / .docx here{% endif %}</p>
-        <p>Your file is processed in memory and deleted right after — nothing is stored. Max 4&nbsp;MB.</p>
+        <p>Your file is processed in memory and deleted right after. Nothing is stored. Max 4&nbsp;MB.</p>
 
         <div class="options">
           <label for="wph">Finished words / hour</label>
@@ -246,10 +246,10 @@
     <section class="disclaimer">
       <h3>A few notes before you trust the numbers</h3>
       <ul>
-        <li><strong>Counts are estimates, not gospel.</strong> Dialogue / narration / tag classification is based on text patterns and won't be 100% accurate — especially in poetry, scripts, or unusually formatted prose. Treat the recording-time number as a planning estimate, not a quote-locking guarantee.</li>
+        <li><strong>Counts are estimates, not gospel.</strong> Dialogue / narration / tag classification is based on text patterns and won't be 100% accurate, especially in poetry, scripts, or unusually formatted prose. Treat the recording-time number as a planning estimate, not a quote-locking guarantee.</li>
         <li><strong>Chapter breaks need to be recognizable.</strong> The parser uses your file's bookmarks (PDF) or Heading 1 styles (Word), and falls back to heading patterns like <code>Chapter 1</code> / <code>CHAPTER ONE</code> / <code>Prologue</code>. If your manuscript runs chapters together with no headings, the whole book may be reported as one chapter.</li>
-        <li><strong>Scanned PDFs won't work.</strong> If your PDF is an image of pages (rather than searchable text), there's nothing for the parser to read. OCR it first.</li>
-        <li><strong>POV detection is conservative.</strong> It only fires when the chapter title or first lines look unambiguously like a name (e.g. <code>Chapter 5 — Sarah</code>, or a <code>SARAH</code> subheader).</li>
+        <li><strong>Scanned PDFs need OCR first.</strong> If your PDF is a picture of pages rather than searchable text, there's nothing for the parser to read. OCR converts the image back into text. We don't run OCR here, but you can do it locally before uploading: <strong>Adobe Acrobat</strong> (Tools &rsaquo; Scan &amp; OCR), <strong>OCRmyPDF</strong> (free, open source, runs on your own machine), or <strong>Sejda</strong>'s free online OCR. None of these are AI / LLM tools.</li>
+        <li><strong>POV detection is conservative.</strong> It only fires when the chapter title or first lines look unambiguously like a name (e.g. <code>Chapter 5: Sarah</code>, or a <code>SARAH</code> subheader).</li>
       </ul>
     </section>
   </main>
