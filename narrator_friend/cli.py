@@ -1,4 +1,4 @@
-"""Command-line entry point: `python -m crystal book.pdf` (or .docx)."""
+"""Command-line entry point: `python -m narrator_friend book.pdf` (or .docx)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from .report import build_report, format_text_report
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="crystal",
+        prog="narrator-friend",
         description="Per-chapter manuscript breakdown for narrators.",
     )
     parser.add_argument("manuscript", help="Path to manuscript PDF or .docx")
@@ -31,13 +31,13 @@ def main(argv: list[str] | None = None) -> int:
 
     src = Path(args.manuscript)
     if not src.is_file():
-        print(f"crystal: file not found: {src}", file=sys.stderr)
+        print(f"narrator-friend: file not found: {src}", file=sys.stderr)
         return 2
 
     try:
         chapters = parse_manuscript(str(src))
     except ValueError as exc:
-        print(f"crystal: {exc}", file=sys.stderr)
+        print(f"narrator-friend: {exc}", file=sys.stderr)
         return 2
     report = build_report(chapters, words_per_hour=args.wph)
 

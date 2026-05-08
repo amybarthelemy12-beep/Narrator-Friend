@@ -1,4 +1,4 @@
-from crystal.analyzer import (
+from narrator_friend.analyzer import (
     DEFAULT_WORDS_PER_HOUR,
     analyze_text,
     count_words,
