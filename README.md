@@ -70,20 +70,34 @@ The repo is set up to deploy as a single Vercel Python serverless function:
 
 Push to the connected repo, or run `vercel --prod`. The Hobby plan caps request bodies at ~4.5 MB, which the upload limit (`MAX_UPLOAD_BYTES`) is set to respect.
 
-### Environment variables
+## Tip jar
 
-Set these in the Vercel project's **Settings → Environment Variables**:
+There's no rate limit. The footer of the analysis page shows a Venmo QR / link as a voluntary tip jar. To change the destination, edit `VENMO_URL` and `VENMO_HANDLE` in `crystal/web.py` and regenerate `crystal/static/venmo-qr.svg`:
 
-| Var | Required | Purpose |
-| --- | --- | --- |
-| `SECRET_KEY` | **yes** on Vercel | Signs the Flask session cookie that holds the rate-limit + paid-credit state. Use any long random string (e.g. `python -c "import secrets; print(secrets.token_hex(32))"`). Without it, sessions reset on every cold start and the rate limit is effectively off. |
-| `STRIPE_SECRET_KEY` | optional | Stripe live/test secret key. When unset, the paywall page shows a "launching soon" placeholder. |
-| `STRIPE_PRICE_ID` | optional | Stripe price ID for the $0.99 per-report product. Required alongside `STRIPE_SECRET_KEY` to enable real checkout. |
-| `UNLOCK_KEY` | optional | A private string. Visiting `/unlock/<value>` once grants the current browser unlimited reports. Useful for you and Crystal to bypass the paywall. |
+```bash
+python3 - <<'PY'
+import qrcode
+qr = qrcode.QRCode(version=None, error_correction=qrcode.ERROR_CORRECT_M, box_size=1, border=2)
+qr.add_data("https://venmo.com/u/your-handle")
+qr.make(fit=True)
+m = qr.get_matrix()
+size = len(m)
+parts = []
+for y, row in enumerate(m):
+    x = 0
+    while x < size:
+        if row[x]:
+            s = x
+            while x < size and row[x]:
+                x += 1
+            parts.append(f"M{s},{y}h{x-s}v1h-{x-s}z")
+        else:
+            x += 1
+print(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}" shape-rendering="crispEdges"><path fill="#000" d="{"".join(parts)}"/></svg>')
+PY
+```
 
-### Pay-per-report
-
-The first analysis per browser session is free; further analyses require a $0.99 Stripe Checkout payment. After a successful payment Stripe redirects to `/paid?session_id=…`, the server verifies the session, and grants one paid credit. Each credit is consumed by the next successful analysis.
+Pipe that to `crystal/static/venmo-qr.svg`.
 
 ## Limitations
 
