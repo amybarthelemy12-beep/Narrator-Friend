@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Crystal — Manuscript Breakdown for Narrators</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --ink: #1c1c1c;
+      --muted: #6b6657;
+      --accent: #6a4cff;
+      --accent-soft: #ece6ff;
+      --line: #e1ddd2;
+      --row: #ffffff;
+      --row-alt: #faf8f1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--ink); line-height: 1.5;
+    }
+    header { padding: 2.5rem 1.5rem 1rem; max-width: 960px; margin: 0 auto; }
+    h1 { margin: 0 0 .25rem; font-weight: 700; letter-spacing: -.02em; }
+    .tag { color: var(--muted); margin: 0 0 1.5rem; }
+    main { max-width: 960px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+
+    .drop {
+      border: 2px dashed var(--line); border-radius: 14px;
+      padding: 2.5rem 1.5rem; text-align: center; background: white;
+      transition: border-color .15s, background .15s;
+    }
+    .drop.dragover { border-color: var(--accent); background: var(--accent-soft); }
+    .drop p { margin: .5rem 0; color: var(--muted); }
+    .drop input[type=file] { display: none; }
+    .drop label.btn {
+      display: inline-block; background: var(--ink); color: white;
+      padding: .7rem 1.25rem; border-radius: 999px; cursor: pointer;
+      font-weight: 600;
+    }
+    .drop label.btn:hover { background: var(--accent); }
+    .drop .filename { font-weight: 600; color: var(--ink); }
+
+    .options { display: flex; gap: 1rem; align-items: center; margin: 1rem 0 0; flex-wrap: wrap; justify-content: center; }
+    .options label { color: var(--muted); }
+    .options input[type=number] {
+      padding: .4rem .6rem; border: 1px solid var(--line); border-radius: 8px;
+      width: 7em; font: inherit;
+    }
+    button.go {
+      background: var(--accent); color: white; border: 0; padding: .7rem 1.5rem;
+      border-radius: 999px; font-weight: 600; cursor: pointer; font: inherit;
+    }
+    button.go:hover { filter: brightness(1.05); }
+
+    .error {
+      margin-top: 1rem; padding: .8rem 1rem; border-radius: 8px;
+      background: #fdecec; color: #8a1f1f; border: 1px solid #f3c4c4;
+    }
+
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; margin: 2rem 0 1rem; }
+    .stat {
+      flex: 1 1 12rem; background: white; border: 1px solid var(--line);
+      border-radius: 12px; padding: 1rem 1.25rem;
+    }
+    .stat .label { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; }
+    .stat .value { font-size: 1.6rem; font-weight: 700; margin-top: .25rem; }
+
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 1rem;
+      background: white; border: 1px solid var(--line); border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td { padding: .65rem .9rem; text-align: left; font-variant-numeric: tabular-nums; }
+    th { background: #efeadd; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    tbody tr:nth-child(even) td { background: var(--row-alt); }
+    tbody tr:nth-child(odd)  td { background: var(--row); }
+    td.num, th.num { text-align: right; }
+    .pov {
+      display: inline-block; background: var(--accent-soft); color: var(--accent);
+      padding: .15rem .55rem; border-radius: 999px; font-weight: 600; font-size: .82rem;
+    }
+    .bar {
+      display: inline-block; height: 6px; vertical-align: middle; border-radius: 3px; min-width: 1px;
+    }
+    .bar.dial { background: var(--accent); }
+    .bar.narr { background: #b9b1a1; }
+    .bar.tag  { background: #d8c46a; }
+    .bars { display: flex; gap: 1px; width: 6rem; align-items: center; }
+
+    footer { color: var(--muted); margin-top: 2rem; font-size: .9rem; text-align: center; }
+    code { background: #efeadd; padding: .1em .35em; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Crystal</h1>
+    <p class="tag">Drop a manuscript — PDF or Word — and get a per-chapter breakdown of dialogue, narration, dialogue tags, POV, and estimated recording time.</p>
+  </header>
+
+  <main>
+    <form method="post" action="/analyze" enctype="multipart/form-data" id="form">
+      <div class="drop" id="drop">
+        <input type="file" name="manuscript" id="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
+        <label for="file" class="btn">Choose file</label>
+        <p class="filename" id="filename">{% if filename %}{{ filename }}{% else %}or drop a .pdf / .docx here{% endif %}</p>
+        <p>Your file is processed in memory and deleted right after — nothing is stored. Max 4&nbsp;MB.</p>
+
+        <div class="options">
+          <label for="wph">Finished words / hour</label>
+          <input type="number" name="wph" id="wph" min="1000" max="30000" step="100" value="{{ words_per_hour }}">
+          <button class="go" type="submit">Analyze</button>
+        </div>
+      </div>
+    </form>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if report %}
+      <section>
+        <div class="summary">
+          <div class="stat">
+            <div class="label">Total words</div>
+            <div class="value">{{ "{:,}".format(report.totals.total_words) }}</div>
+          </div>
+          <div class="stat">
+            <div class="label">Recording time</div>
+            <div class="value">{{ report.total_recording_time }}</div>
+          </div>
+          <div class="stat">
+            <div class="label">Chapters</div>
+            <div class="value">{{ report.chapters|length }}</div>
+          </div>
+          <div class="stat">
+            <div class="label">Dialogue lines</div>
+            <div class="value">{{ "{:,}".format(report.totals.dialogue_lines) }}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Pg</th>
+              <th>Title</th>
+              <th>POV</th>
+              <th class="num">Words</th>
+              <th>Mix</th>
+              <th class="num">Dial</th>
+              <th class="num">Narr</th>
+              <th class="num">Tags</th>
+              <th class="num">Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in report.chapters %}
+              <tr>
+                <td>{{ c.index }}</td>
+                <td>{{ c.page_start or "" }}</td>
+                <td>{{ c.title }}</td>
+                <td>{% if c.pov %}<span class="pov">{{ c.pov }}</span>{% endif %}</td>
+                <td class="num">{{ "{:,}".format(c.breakdown.total_words) }}</td>
+                <td>
+                  <span class="bars" title="dialogue / narration / tags">
+                    <span class="bar dial" style="width: {{ c.breakdown.dialogue_pct }}%"></span>
+                    <span class="bar narr" style="width: {{ c.breakdown.narration_pct }}%"></span>
+                    <span class="bar tag"  style="width: {{ c.breakdown.tag_pct }}%"></span>
+                  </span>
+                </td>
+                <td class="num">{{ "%.0f%%"|format(c.breakdown.dialogue_pct) }}</td>
+                <td class="num">{{ "%.0f%%"|format(c.breakdown.narration_pct) }}</td>
+                <td class="num">{{ "%.0f%%"|format(c.breakdown.tag_pct) }}</td>
+                <td class="num">{{ c.recording_time }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <footer>
+          Estimated at {{ "{:,}".format(report.words_per_hour) }} finished words / hour.
+          Chapter detection uses the PDF's bookmarks where available, otherwise falls back to heading patterns.
+        </footer>
+      </section>
+    {% endif %}
+  </main>
+
+  <script>
+    const drop = document.getElementById('drop');
+    const file = document.getElementById('file');
+    const filenameEl = document.getElementById('filename');
+
+    file.addEventListener('change', () => {
+      if (file.files && file.files[0]) {
+        filenameEl.textContent = file.files[0].name;
+      }
+    });
+
+    ['dragenter', 'dragover'].forEach(e =>
+      drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('dragover'); }));
+    ['dragleave', 'drop'].forEach(e =>
+      drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('dragover'); }));
+    drop.addEventListener('drop', ev => {
+      if (ev.dataTransfer.files && ev.dataTransfer.files[0]) {
+        file.files = ev.dataTransfer.files;
+        filenameEl.textContent = ev.dataTransfer.files[0].name;
+      }
+    });
+  </script>
+</body>
+</html>
