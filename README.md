@@ -70,6 +70,21 @@ The repo is set up to deploy as a single Vercel Python serverless function:
 
 Push to the connected repo, or run `vercel --prod`. The Hobby plan caps request bodies at ~4.5 MB, which the upload limit (`MAX_UPLOAD_BYTES`) is set to respect.
 
+### Environment variables
+
+Set these in the Vercel project's **Settings → Environment Variables**:
+
+| Var | Required | Purpose |
+| --- | --- | --- |
+| `SECRET_KEY` | **yes** on Vercel | Signs the Flask session cookie that holds the rate-limit + paid-credit state. Use any long random string (e.g. `python -c "import secrets; print(secrets.token_hex(32))"`). Without it, sessions reset on every cold start and the rate limit is effectively off. |
+| `STRIPE_SECRET_KEY` | optional | Stripe live/test secret key. When unset, the paywall page shows a "launching soon" placeholder. |
+| `STRIPE_PRICE_ID` | optional | Stripe price ID for the $0.99 per-report product. Required alongside `STRIPE_SECRET_KEY` to enable real checkout. |
+| `UNLOCK_KEY` | optional | A private string. Visiting `/unlock/<value>` once grants the current browser unlimited reports. Useful for you and Crystal to bypass the paywall. |
+
+### Pay-per-report
+
+The first analysis per browser session is free; further analyses require a $0.99 Stripe Checkout payment. After a successful payment Stripe redirects to `/paid?session_id=…`, the server verifies the session, and grants one paid credit. Each credit is consumed by the next successful analysis.
+
 ## Limitations
 
 - PDFs that are scans rather than text need to be OCR'd first; `pypdf` cannot read images.

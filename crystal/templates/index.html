@@ -58,6 +58,17 @@
       background: #fdecec; color: #8a1f1f; border: 1px solid #f3c4c4;
     }
 
+    .usage {
+      display: flex; align-items: center; gap: .5rem; justify-content: space-between;
+      margin: 0 0 1rem; padding: .55rem 1rem; border-radius: 999px;
+      background: white; border: 1px solid var(--line); color: var(--muted);
+      font-size: .9rem;
+    }
+    .usage strong { color: var(--ink); }
+    .usage a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .usage a:hover { text-decoration: underline; }
+    .usage.gated { background: #fff8e9; border-color: #f0d893; color: #6a4d12; }
+
     .summary { display: flex; gap: 1rem; flex-wrap: wrap; margin: 2rem 0 1rem; }
     .stat {
       flex: 1 1 12rem; background: white; border: 1px solid var(--line);
@@ -99,6 +110,20 @@
   </header>
 
   <main>
+    {% if not unlimited %}
+      {% if credits_remaining == 0 %}
+        <div class="usage gated">
+          <span><strong>You've used your free analysis.</strong> Need another?</span>
+          <a href="{{ url_for('paywall') }}">Get one more — {{ price_display }} →</a>
+        </div>
+      {% else %}
+        <div class="usage">
+          <span>{{ credits_remaining }} report{{ '' if credits_remaining == 1 else 's' }} left.</span>
+          <a href="{{ url_for('paywall') }}">Buy more — {{ price_display }} each</a>
+        </div>
+      {% endif %}
+    {% endif %}
+
     <form method="post" action="/analyze" enctype="multipart/form-data" id="form">
       <div class="drop" id="drop">
         <input type="file" name="manuscript" id="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
