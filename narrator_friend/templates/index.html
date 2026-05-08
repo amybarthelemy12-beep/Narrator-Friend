@@ -22,7 +22,18 @@
     }
     header { padding: 2.5rem 1.5rem 1rem; max-width: 960px; margin: 0 auto; }
     h1 { margin: 0 0 .25rem; font-weight: 700; letter-spacing: -.02em; }
-    .tag { color: var(--muted); margin: 0 0 1.5rem; }
+    .tag { color: var(--muted); margin: 0 0 .9rem; }
+    .ai-free {
+      margin: 0 0 1.5rem; padding: .65rem .9rem;
+      background: #eef6ee; border: 1px solid #c8e1c9; border-radius: 10px;
+      color: #2f5d35; font-size: .9rem; line-height: 1.45;
+    }
+    .ai-free .pill {
+      display: inline-block; background: #2f5d35; color: white;
+      font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+      padding: .2rem .55rem; border-radius: 999px; margin-right: .55rem;
+      text-transform: uppercase;
+    }
     main { max-width: 960px; margin: 0 auto; padding: 0 1.5rem 4rem; }
 
     .drop {
@@ -128,6 +139,10 @@
   <header>
     <h1>Narrator Friend</h1>
     <p class="tag">Drop a manuscript — PDF or Word — and get a per-chapter breakdown of dialogue, narration, dialogue tags, POV, and estimated recording time.</p>
+    <p class="ai-free">
+      <span class="pill">Built by humans · No AI</span>
+      Your manuscript is read by plain Python — no language models, no third-party services, no training on your text. Counted in memory, deleted on the spot.
+    </p>
   </header>
 
   <main>
@@ -217,16 +232,6 @@
       </section>
     {% endif %}
 
-    <section class="disclaimer">
-      <h3>A few notes before you trust the numbers</h3>
-      <ul>
-        <li><strong>Counts are estimates, not gospel.</strong> Dialogue / narration / tag classification is based on text patterns and won't be 100% accurate — especially in poetry, scripts, or unusually formatted prose. Treat the recording-time number as a planning estimate, not a quote-locking guarantee.</li>
-        <li><strong>Chapter breaks need to be recognizable.</strong> The parser uses your file's bookmarks (PDF) or Heading 1 styles (Word), and falls back to heading patterns like <code>Chapter 1</code> / <code>CHAPTER ONE</code> / <code>Prologue</code>. If your manuscript runs chapters together with no headings, the whole book may be reported as one chapter.</li>
-        <li><strong>Scanned PDFs won't work.</strong> If your PDF is an image of pages (rather than searchable text), there's nothing for the parser to read. OCR it first.</li>
-        <li><strong>POV detection is conservative.</strong> It only fires when the chapter title or first lines look unambiguously like a name (e.g. <code>Chapter 5 — Sarah</code>, or a <code>SARAH</code> subheader).</li>
-      </ul>
-    </section>
-
     <section class="tipjar">
       <a href="{{ venmo_url }}" target="_blank" rel="noopener" aria-label="Tip via Venmo">
         <img src="{{ url_for('static', filename='venmo-qr.svg') }}" alt="Venmo QR code for {{ venmo_handle }}">
@@ -236,6 +241,16 @@
         <p>Narrator Friend is free and stays free. If it saved you time, a small Venmo tip keeps the lights on.</p>
         <a class="venmo" href="{{ venmo_url }}" target="_blank" rel="noopener">Tip via Venmo · {{ venmo_handle }}</a>
       </div>
+    </section>
+
+    <section class="disclaimer">
+      <h3>A few notes before you trust the numbers</h3>
+      <ul>
+        <li><strong>Counts are estimates, not gospel.</strong> Dialogue / narration / tag classification is based on text patterns and won't be 100% accurate — especially in poetry, scripts, or unusually formatted prose. Treat the recording-time number as a planning estimate, not a quote-locking guarantee.</li>
+        <li><strong>Chapter breaks need to be recognizable.</strong> The parser uses your file's bookmarks (PDF) or Heading 1 styles (Word), and falls back to heading patterns like <code>Chapter 1</code> / <code>CHAPTER ONE</code> / <code>Prologue</code>. If your manuscript runs chapters together with no headings, the whole book may be reported as one chapter.</li>
+        <li><strong>Scanned PDFs won't work.</strong> If your PDF is an image of pages (rather than searchable text), there's nothing for the parser to read. OCR it first.</li>
+        <li><strong>POV detection is conservative.</strong> It only fires when the chapter title or first lines look unambiguously like a name (e.g. <code>Chapter 5 — Sarah</code>, or a <code>SARAH</code> subheader).</li>
+      </ul>
     </section>
   </main>
 
