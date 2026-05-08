@@ -112,3 +112,26 @@ def test_uk_dialogue_does_not_eat_possessives():
     assert b.dialogue_words == 0
     assert b.tag_words == 0
     assert b.narration_words == 9
+
+
+def test_unclosed_open_quote_does_not_hang():
+    # Regression: an opening single quote with no matching close before a
+    # paragraph break used to leave the scan index parked, causing an infinite
+    # loop in `_find_single_dialogue` and a hung /analyze request.
+    import threading
+
+    text = (
+        "'Twas the night before Christmas and not a creature was stirring.\n\n"
+        "The next morning, Sarah opened her eyes."
+    )
+    result: dict = {}
+
+    def run():
+        result["mode"] = detect_dialogue_mode(text)
+        result["analysis"] = analyze_text(text)
+
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    t.join(timeout=2.0)
+    assert not t.is_alive(), "analyze_text hung on unclosed opening single quote"
+    assert "analysis" in result
