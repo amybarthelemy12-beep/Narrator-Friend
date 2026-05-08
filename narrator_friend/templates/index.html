@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Crystal — Manuscript Breakdown for Narrators</title>
+  <title>Narrator Friend — Manuscript Breakdown for Audiobook Narrators</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     :root {
@@ -58,6 +58,38 @@
       background: #fdecec; color: #8a1f1f; border: 1px solid #f3c4c4;
     }
 
+    .tipjar {
+      display: grid; grid-template-columns: auto 1fr; gap: 1.25rem;
+      align-items: center;
+      margin: 3rem 0 1rem; padding: 1.5rem;
+      background: white; border: 1px solid var(--line); border-radius: 14px;
+    }
+    .tipjar img { width: 132px; height: 132px; display: block; border-radius: 8px; background: white; }
+    .tipjar h3 { margin: 0 0 .25rem; font-size: 1.05rem; }
+    .tipjar p  { margin: 0 0 .65rem; color: var(--muted); font-size: .92rem; }
+    .tipjar a.venmo {
+      display: inline-block; background: #008CFF; color: white; text-decoration: none;
+      padding: .55rem 1.1rem; border-radius: 999px; font-weight: 600; font-size: .92rem;
+    }
+    .tipjar a.venmo:hover { filter: brightness(1.05); }
+    @media (max-width: 480px) {
+      .tipjar { grid-template-columns: 1fr; text-align: center; }
+      .tipjar img { margin: 0 auto; }
+    }
+
+    .disclaimer {
+      margin: 2.5rem 0 0; padding: 1.25rem 1.5rem;
+      background: #fff8e9; border: 1px solid #f0d893; border-radius: 12px;
+      color: #6a4d12; font-size: .92rem;
+    }
+    .disclaimer h3 { margin: 0 0 .5rem; color: #6a4d12; font-size: 1rem; }
+    .disclaimer ul { margin: 0; padding-left: 1.1rem; }
+    .disclaimer li { margin: .35rem 0; }
+    .disclaimer code {
+      background: #f6e9c2; padding: .05em .35em; border-radius: 4px;
+      font-size: .9em;
+    }
+
     .summary { display: flex; gap: 1rem; flex-wrap: wrap; margin: 2rem 0 1rem; }
     .stat {
       flex: 1 1 12rem; background: white; border: 1px solid var(--line);
@@ -94,7 +126,7 @@
 </head>
 <body>
   <header>
-    <h1>Crystal</h1>
+    <h1>Narrator Friend</h1>
     <p class="tag">Drop a manuscript — PDF or Word — and get a per-chapter breakdown of dialogue, narration, dialogue tags, POV, and estimated recording time.</p>
   </header>
 
@@ -184,6 +216,27 @@
         </footer>
       </section>
     {% endif %}
+
+    <section class="disclaimer">
+      <h3>A few notes before you trust the numbers</h3>
+      <ul>
+        <li><strong>Counts are estimates, not gospel.</strong> Dialogue / narration / tag classification is based on text patterns and won't be 100% accurate — especially in poetry, scripts, or unusually formatted prose. Treat the recording-time number as a planning estimate, not a quote-locking guarantee.</li>
+        <li><strong>Chapter breaks need to be recognizable.</strong> The parser uses your file's bookmarks (PDF) or Heading 1 styles (Word), and falls back to heading patterns like <code>Chapter 1</code> / <code>CHAPTER ONE</code> / <code>Prologue</code>. If your manuscript runs chapters together with no headings, the whole book may be reported as one chapter.</li>
+        <li><strong>Scanned PDFs won't work.</strong> If your PDF is an image of pages (rather than searchable text), there's nothing for the parser to read. OCR it first.</li>
+        <li><strong>POV detection is conservative.</strong> It only fires when the chapter title or first lines look unambiguously like a name (e.g. <code>Chapter 5 — Sarah</code>, or a <code>SARAH</code> subheader).</li>
+      </ul>
+    </section>
+
+    <section class="tipjar">
+      <a href="{{ venmo_url }}" target="_blank" rel="noopener" aria-label="Tip via Venmo">
+        <img src="{{ url_for('static', filename='venmo-qr.svg') }}" alt="Venmo QR code for {{ venmo_handle }}">
+      </a>
+      <div>
+        <h3>Did this help?</h3>
+        <p>Narrator Friend is free and stays free. If it saved you time, a small Venmo tip keeps the lights on.</p>
+        <a class="venmo" href="{{ venmo_url }}" target="_blank" rel="noopener">Tip via Venmo · {{ venmo_handle }}</a>
+      </div>
+    </section>
   </main>
 
   <script>

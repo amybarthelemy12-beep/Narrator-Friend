@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from .parser import Chapter
 
@@ -177,27 +177,34 @@ def _find_single_dialogue(text: str) -> List[Tuple[int, int, str]]:
         if text[i] != "'" or not _is_open_single(text, i):
             i += 1
             continue
+
         # Scan forward for a `'` that looks like a closing quote, allowing
-        # intra-word apostrophes (don't, it's) to pass through.
+        # intra-word apostrophes (don't, it's) to pass through. Bail at a
+        # paragraph break — dialogue doesn't span blank lines.
+        close_j: Optional[int] = None
         j = i + 1
         while j < n:
+            if text[j] == "\n" and j + 1 < n and text[j + 1] == "\n":
+                break
             if text[j] == "'":
-                if _is_close_single(text, j):
-                    spans.append((i, j + 1, text[i + 1:j]))
-                    i = j + 1
-                    break
                 if _is_apostrophe(text, j):
                     j += 1
                     continue
-            if text[j] == "\n" and j + 1 < n and text[j + 1] == "\n":
-                # Don't span a paragraph break — bail out of this candidate.
-                break
+                if _is_close_single(text, j):
+                    close_j = j
+                    break
             j += 1
+
+        if close_j is not None:
+            spans.append((i, close_j + 1, text[i + 1:close_j]))
+            i = close_j + 1
         else:
+            # No close found before paragraph break / EOF — advance past this
+            # candidate open and keep scanning. (Bug fix: previously this path
+            # left `i` unchanged, causing an infinite loop on any unclosed
+            # opening quote followed by a paragraph break.)
             i += 1
-            continue
-        if j >= n:
-            i += 1
+
     return spans
 
 

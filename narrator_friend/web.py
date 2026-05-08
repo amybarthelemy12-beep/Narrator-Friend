@@ -13,6 +13,8 @@ from .parser import SUPPORTED_EXTENSIONS, parse_manuscript
 from .report import build_report
 
 MAX_UPLOAD_BYTES = 4 * 1024 * 1024  # 4 MB — Vercel hobby request-body cap is 4.5 MB
+VENMO_URL = "https://venmo.com/u/Amy-barthelemy12"
+VENMO_HANDLE = "@Amy-barthelemy12"
 
 
 def create_app() -> Flask:
@@ -26,6 +28,8 @@ def create_app() -> Flask:
             error=error,
             words_per_hour=wph,
             filename=filename,
+            venmo_url=VENMO_URL,
+            venmo_handle=VENMO_HANDLE,
         ), status
 
     @app.get("/")

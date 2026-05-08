@@ -1,6 +1,6 @@
 import pytest
 
-from crystal.parser import _split_heuristic, detect_pov, parse_manuscript
+from narrator_friend.parser import _split_heuristic, detect_pov, parse_manuscript
 
 
 def test_heuristic_splits_on_chapter_headings():
