@@ -1,4 +1,6 @@
-from crystal.parser import _split_heuristic, detect_pov
+import pytest
+
+from crystal.parser import _split_heuristic, detect_pov, parse_manuscript
 
 
 def test_heuristic_splits_on_chapter_headings():
@@ -48,3 +50,36 @@ def test_pov_none_for_normal_chapter_start():
         "The river was loud that morning, and she could barely think.",
     )
     assert pov is None
+
+
+def test_parse_manuscript_rejects_unknown_extension(tmp_path):
+    p = tmp_path / "notes.txt"
+    p.write_text("hello")
+    with pytest.raises(ValueError):
+        parse_manuscript(str(p))
+
+
+def test_parse_manuscript_doc_message(tmp_path):
+    p = tmp_path / "draft.doc"
+    p.write_bytes(b"\xd0\xcf\x11\xe0")  # OLE magic, just a stub
+    with pytest.raises(ValueError, match="\\.docx or PDF"):
+        parse_manuscript(str(p))
+
+
+def test_parse_manuscript_docx(tmp_path):
+    docx = pytest.importorskip("docx")
+    path = tmp_path / "manuscript.docx"
+    document = docx.Document()
+    document.add_heading("Chapter 1", level=1)
+    document.add_paragraph('"Hello," she said.')
+    document.add_paragraph("She turned to leave.")
+    document.add_heading("Chapter 2 — Sarah", level=1)
+    document.add_paragraph('"Wait!" he shouted.')
+    document.add_paragraph("He ran after her.")
+    document.save(str(path))
+
+    chapters = parse_manuscript(str(path))
+    assert len(chapters) == 2
+    assert chapters[0].title.lower().startswith("chapter 1")
+    assert chapters[1].pov == "Sarah"
+    assert "Wait!" in chapters[1].text

@@ -1,12 +1,15 @@
-"""PDF parsing: extract text and split into chapters."""
+"""Manuscript parsing (PDF + DOCX): extract text and split into chapters."""
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
 import pypdf
+
+SUPPORTED_EXTENSIONS = (".pdf", ".docx")
 
 
 @dataclass
@@ -32,6 +35,22 @@ _CHAPTER_HEADING = re.compile(
 )
 
 
+def parse_manuscript(path: str) -> List[Chapter]:
+    """Dispatch on file extension. Supports .pdf and .docx."""
+    suffix = Path(path).suffix.lower()
+    if suffix == ".pdf":
+        return parse_pdf(path)
+    if suffix == ".docx":
+        return parse_docx(path)
+    if suffix == ".doc":
+        raise ValueError(
+            "Old Word .doc files aren't supported. Please save the manuscript as .docx or PDF."
+        )
+    raise ValueError(
+        f"Unsupported file type '{suffix}'. Please upload a .pdf or .docx file."
+    )
+
+
 def parse_pdf(pdf_path: str) -> List[Chapter]:
     """Parse a PDF into a list of Chapters using bookmarks first, then heuristic."""
     reader = pypdf.PdfReader(pdf_path)
@@ -44,6 +63,46 @@ def parse_pdf(pdf_path: str) -> List[Chapter]:
             return _post_process(chapters)
 
     return _post_process(_split_heuristic(pages))
+
+
+def parse_docx(docx_path: str) -> List[Chapter]:
+    """Parse a Word .docx using Heading-style chapter markers, then heuristic fallback."""
+    from docx import Document  # local import keeps PDF-only callers light
+
+    document = Document(docx_path)
+    paragraphs = list(document.paragraphs)
+
+    chapters = _split_docx_by_headings(paragraphs)
+    if len(chapters) >= 2:
+        return _post_process(chapters)
+
+    text = "\n".join(p.text for p in paragraphs)
+    return _post_process(_split_heuristic([text]))
+
+
+def _split_docx_by_headings(paragraphs) -> List[Chapter]:
+    """Split a docx by Heading 1 / Title styles when present."""
+    chapters: List[Chapter] = []
+    current_title: Optional[str] = None
+    current_lines: List[str] = []
+
+    def is_heading(p) -> bool:
+        style = (getattr(getattr(p, "style", None), "name", "") or "").strip()
+        return style.startswith("Heading 1") or style == "Title"
+
+    for p in paragraphs:
+        if is_heading(p):
+            if current_title is not None:
+                chapters.append(Chapter(title=current_title, text="\n".join(current_lines)))
+            current_title = (p.text or "").strip() or "Untitled"
+            current_lines = []
+        else:
+            current_lines.append(p.text)
+
+    if current_title is not None:
+        chapters.append(Chapter(title=current_title, text="\n".join(current_lines)))
+
+    return chapters
 
 
 def _outline_chapters(reader: pypdf.PdfReader) -> List[Tuple[str, int]]:

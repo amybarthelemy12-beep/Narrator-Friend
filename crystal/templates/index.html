@@ -95,16 +95,16 @@
 <body>
   <header>
     <h1>Crystal</h1>
-    <p class="tag">Drop a manuscript PDF — get a per-chapter breakdown of dialogue, narration, dialogue tags, POV, and estimated recording time.</p>
+    <p class="tag">Drop a manuscript — PDF or Word — and get a per-chapter breakdown of dialogue, narration, dialogue tags, POV, and estimated recording time.</p>
   </header>
 
   <main>
     <form method="post" action="/analyze" enctype="multipart/form-data" id="form">
       <div class="drop" id="drop">
-        <input type="file" name="manuscript" id="file" accept="application/pdf,.pdf" required>
-        <label for="file" class="btn">Choose PDF</label>
-        <p class="filename" id="filename">{% if filename %}{{ filename }}{% else %}or drop it here{% endif %}</p>
-        <p>Manuscripts only — your file is processed in memory and not stored.</p>
+        <input type="file" name="manuscript" id="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
+        <label for="file" class="btn">Choose file</label>
+        <p class="filename" id="filename">{% if filename %}{{ filename }}{% else %}or drop a .pdf / .docx here{% endif %}</p>
+        <p>Your file is processed in memory and deleted right after — nothing is stored. Max 4&nbsp;MB.</p>
 
         <div class="options">
           <label for="wph">Finished words / hour</label>

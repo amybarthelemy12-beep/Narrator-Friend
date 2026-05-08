@@ -1,4 +1,4 @@
-"""Command-line entry point: `python -m crystal book.pdf`."""
+"""Command-line entry point: `python -m crystal book.pdf` (or .docx)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from .analyzer import DEFAULT_WORDS_PER_HOUR
-from .parser import parse_pdf
+from .parser import parse_manuscript
 from .report import build_report, format_text_report
 
 
@@ -17,7 +17,7 @@ def main(argv: list[str] | None = None) -> int:
         prog="crystal",
         description="Per-chapter manuscript breakdown for narrators.",
     )
-    parser.add_argument("pdf", help="Path to manuscript PDF")
+    parser.add_argument("manuscript", help="Path to manuscript PDF or .docx")
     parser.add_argument(
         "--wph",
         type=int,
@@ -29,12 +29,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    pdf_path = Path(args.pdf)
-    if not pdf_path.is_file():
-        print(f"crystal: file not found: {pdf_path}", file=sys.stderr)
+    src = Path(args.manuscript)
+    if not src.is_file():
+        print(f"crystal: file not found: {src}", file=sys.stderr)
         return 2
 
-    chapters = parse_pdf(str(pdf_path))
+    try:
+        chapters = parse_manuscript(str(src))
+    except ValueError as exc:
+        print(f"crystal: {exc}", file=sys.stderr)
+        return 2
     report = build_report(chapters, words_per_hour=args.wph)
 
     if args.json:

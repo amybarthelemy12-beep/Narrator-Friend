@@ -2,6 +2,7 @@ from crystal.analyzer import (
     DEFAULT_WORDS_PER_HOUR,
     analyze_text,
     count_words,
+    detect_dialogue_mode,
     recording_time,
 )
 
@@ -72,3 +73,42 @@ def test_recording_time():
     assert recording_time(9300, 9300) == "1:00"
     assert recording_time(0) == "0:00"
     assert recording_time(DEFAULT_WORDS_PER_HOUR // 2) == "0:30"
+
+
+# UK single-quote dialogue ---------------------------------------------------
+
+UK_SAMPLE = (
+    "'Get out,' she said. 'Now.'\n"
+    "'I don't want to,' he replied, holding the kids' hands.\n"
+    "Sarah whispered, 'It's all I have left.'\n"
+    "She wasn't sure what came next."
+)
+
+
+def test_detect_uk_single_mode():
+    assert detect_dialogue_mode(UK_SAMPLE) == "single"
+
+
+def test_detect_us_double_mode():
+    text = '"Hello," she said. "How are you?" he asked.'
+    assert detect_dialogue_mode(text) == "double"
+
+
+def test_uk_dialogue_skips_apostrophes():
+    b = analyze_text(UK_SAMPLE, mode="single")
+    # Four lines of dialogue: "Get out", "Now", "I don't want to", "It's all I have left"
+    assert b.dialogue_lines == 4
+    # Apostrophes inside contractions must NOT split the dialogue; "I don't want to" → 4 words
+    assert b.dialogue_words == 2 + 1 + 4 + 5  # 12
+    assert b.tag_words >= 4  # "she said" + "he replied" + "Sarah whispered"
+
+
+def test_uk_dialogue_does_not_eat_possessives():
+    # "the kids' hands" is a possessive, not dialogue. With auto mode this
+    # paragraph alone is double mode (no single-quote dialogue) so should be
+    # all narration.
+    text = "She held the kids' hands tightly and didn't speak."
+    b = analyze_text(text)
+    assert b.dialogue_words == 0
+    assert b.tag_words == 0
+    assert b.narration_words == 9

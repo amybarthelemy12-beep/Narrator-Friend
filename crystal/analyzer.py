@@ -52,8 +52,11 @@ _TAG_BEFORE = re.compile(
     re.IGNORECASE,
 )
 
-_DIALOGUE_RE = re.compile(r'"([^"]*)"')
+_DIALOGUE_DOUBLE = re.compile(r'"(?P<content>[^"]*)"')
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z'’\-]*")
+
+_OPEN_PREV = (" ", "\t", "\n", "(", "[", "—", "–", "")
+_CLOSE_NEXT = (" ", "\t", "\n", ".", ",", "!", "?", ";", ":", ")", "]", "—", "–", "")
 
 
 @dataclass
@@ -90,19 +93,40 @@ def recording_time(words: int, words_per_hour: int = DEFAULT_WORDS_PER_HOUR) -> 
     return f"{hours}:{minutes:02d}"
 
 
-def analyze_chapter(chapter: Chapter) -> Breakdown:
-    return analyze_text(chapter.text)
+def analyze_chapter(chapter: Chapter, mode: str = "auto") -> Breakdown:
+    return analyze_text(chapter.text, mode=mode)
 
 
-def analyze_text(text: str) -> Breakdown:
+def detect_dialogue_mode(text: str) -> str:
+    """Pick 'double' or 'single' (UK style) based on which quote pattern dominates."""
     norm = _normalize_quotes(text)
+    doubles = len(_DIALOGUE_DOUBLE.findall(norm))
+    singles = len(_find_single_dialogue(norm))
+    if singles >= 2 and doubles == 0:
+        return "single"
+    if singles >= 5 and singles >= doubles * 3:
+        return "single"
+    return "double"
 
-    dialogue_spans = list(_DIALOGUE_RE.finditer(norm))
-    dialogue_chunks = [m.group(1) for m in dialogue_spans]
+
+def analyze_text(text: str, mode: str = "auto") -> Breakdown:
+    norm = _normalize_quotes(text)
+    if mode == "auto":
+        mode = detect_dialogue_mode(text)
+
+    if mode == "single":
+        spans = _find_single_dialogue(norm)
+    else:
+        spans = [
+            (m.start(), m.end(), m.group("content"))
+            for m in _DIALOGUE_DOUBLE.finditer(norm)
+        ]
+
+    dialogue_chunks = [content for _, _, content in spans]
     dialogue_words = sum(count_words(d) for d in dialogue_chunks)
     dialogue_lines = sum(1 for d in dialogue_chunks if d.strip())
 
-    interstitials = _interstitials(norm, dialogue_spans)
+    interstitials = _interstitials(norm, spans)
 
     tag_words = 0
     for seg, has_left, has_right in interstitials:
@@ -128,18 +152,78 @@ def _normalize_quotes(text: str) -> str:
 
 
 def _interstitials(
-    text: str, dialogue_spans
+    text: str, dialogue_spans: List[Tuple[int, int, str]]
 ) -> List[Tuple[str, bool, bool]]:
     """Return list of (segment, has_dialogue_to_left, has_dialogue_to_right)."""
     out: List[Tuple[str, bool, bool]] = []
     last = 0
     n = len(dialogue_spans)
-    for i, m in enumerate(dialogue_spans):
-        seg = text[last:m.start()]
-        out.append((seg, i > 0, True))
-        last = m.end()
+    for i, (s, e, _content) in enumerate(dialogue_spans):
+        out.append((text[last:s], i > 0, True))
+        last = e
     out.append((text[last:], n > 0, False))
     return out
+
+
+def _find_single_dialogue(text: str) -> List[Tuple[int, int, str]]:
+    """Find UK single-quote dialogue spans, skipping intra-word apostrophes.
+
+    Returns a list of (start_idx_of_open_quote, end_idx_after_close_quote, content).
+    """
+    spans: List[Tuple[int, int, str]] = []
+    n = len(text)
+    i = 0
+    while i < n:
+        if text[i] != "'" or not _is_open_single(text, i):
+            i += 1
+            continue
+        # Scan forward for a `'` that looks like a closing quote, allowing
+        # intra-word apostrophes (don't, it's) to pass through.
+        j = i + 1
+        while j < n:
+            if text[j] == "'":
+                if _is_close_single(text, j):
+                    spans.append((i, j + 1, text[i + 1:j]))
+                    i = j + 1
+                    break
+                if _is_apostrophe(text, j):
+                    j += 1
+                    continue
+            if text[j] == "\n" and j + 1 < n and text[j + 1] == "\n":
+                # Don't span a paragraph break — bail out of this candidate.
+                break
+            j += 1
+        else:
+            i += 1
+            continue
+        if j >= n:
+            i += 1
+    return spans
+
+
+def _is_open_single(text: str, i: int) -> bool:
+    prev = text[i - 1] if i > 0 else ""
+    nxt = text[i + 1] if i + 1 < len(text) else ""
+    if prev not in _OPEN_PREV:
+        return False
+    return nxt.isalpha() or nxt.isdigit() or nxt in ("—", "–")
+
+
+def _is_close_single(text: str, i: int) -> bool:
+    prev = text[i - 1] if i > 0 else ""
+    nxt = text[i + 1] if i + 1 < len(text) else ""
+    # Closing must follow a letter/digit/sentence-punct and be followed by
+    # whitespace, end of text, or closing punctuation.
+    if not (prev.isalnum() or prev in ".,!?;:—–"):
+        return False
+    return nxt in _CLOSE_NEXT
+
+
+def _is_apostrophe(text: str, i: int) -> bool:
+    prev = text[i - 1] if i > 0 else ""
+    nxt = text[i + 1] if i + 1 < len(text) else ""
+    # don't, it's, you're → letter-letter; kids' → letter-space (also a possessive)
+    return prev.isalpha() and (nxt.isalpha() or nxt == "s")
 
 
 def _tag_word_count(seg: str, has_left: bool, has_right: bool) -> int:
