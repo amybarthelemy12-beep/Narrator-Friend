@@ -11,6 +11,7 @@ from .analyzer import (
     analyze_chapter,
     recording_time,
 )
+from .costs import finished_hours as _finished_hours
 from .parser import Chapter
 
 
@@ -39,12 +40,14 @@ class Report:
     chapters: List[ChapterReport]
     totals: Breakdown
     total_recording_time: str
+    total_finished_hours: float
     words_per_hour: int
 
     def to_dict(self) -> dict:
         return {
             "words_per_hour": self.words_per_hour,
             "total_recording_time": self.total_recording_time,
+            "total_finished_hours": round(self.total_finished_hours, 3),
             "totals": {
                 **asdict(self.totals),
                 "dialogue_pct": round(self.totals.dialogue_pct, 1),
@@ -84,6 +87,7 @@ def build_report(
         chapters=chapter_reports,
         totals=total,
         total_recording_time=recording_time(total.total_words, words_per_hour),
+        total_finished_hours=_finished_hours(total.total_words, words_per_hour),
         words_per_hour=words_per_hour,
     )
 

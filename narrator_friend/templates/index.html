@@ -137,6 +137,75 @@
 
     footer { color: var(--muted); margin-top: 2rem; font-size: .9rem; text-align: center; }
     code { background: #efeadd; padding: .1em .35em; border-radius: 4px; }
+
+    .costs {
+      margin: 2rem 0 0; padding: 1.5rem;
+      background: white; border: 1px solid var(--line); border-radius: 14px;
+    }
+    .costs h2 { margin: 0 0 .25rem; font-size: 1.2rem; }
+    .costs .cost-tag { margin: 0 0 1.25rem; color: var(--muted); font-size: .92rem; }
+    .cost-controls {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .cost-controls fieldset {
+      grid-column: 1 / -1; border: 1px solid var(--line); border-radius: 10px;
+      padding: .65rem .9rem .8rem; margin: 0;
+    }
+    .cost-controls legend { padding: 0 .4rem; color: var(--muted); font-size: .85rem; }
+    .seg { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .seg label {
+      flex: 1 1 6rem; cursor: pointer;
+      border: 1px solid var(--line); border-radius: 8px;
+      padding: .55rem .65rem; text-align: center;
+      background: var(--row-alt); transition: border-color .12s, background .12s;
+      font-size: .92rem; line-height: 1.25;
+    }
+    .seg label:hover { border-color: var(--accent); }
+    .seg label.active {
+      background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
+    }
+    .seg label input { position: absolute; opacity: 0; pointer-events: none; }
+    .seg .rate-hint { display: block; font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+    .seg label.active .rate-hint { color: var(--accent); }
+
+    .cost-row {
+      display: flex; flex-direction: column; gap: .3rem;
+      font-size: .9rem; color: var(--muted);
+    }
+    .cost-row .with-toggle { display: flex; align-items: center; gap: .4rem; color: var(--ink); }
+    .cost-row input[type=number] {
+      padding: .45rem .6rem; border: 1px solid var(--line); border-radius: 8px;
+      font: inherit; width: 100%;
+    }
+    .cost-row input[type=number]:disabled { background: #f2efe6; color: #9c9684; }
+
+    .cost-table {
+      border-top: 1px solid var(--line); padding-top: 1rem;
+      display: grid; gap: .35rem;
+    }
+    .cost-line {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-variant-numeric: tabular-nums;
+    }
+    .cost-line .label { color: var(--muted); }
+    .cost-line .formula { color: var(--muted); font-size: .85rem; margin-left: .5rem; }
+    .cost-line .amount { font-weight: 600; }
+    .cost-line.total {
+      margin-top: .5rem; padding-top: .65rem; border-top: 1px dashed var(--line);
+      font-size: 1.15rem;
+    }
+    .cost-line.total .amount { color: var(--accent); font-weight: 700; }
+    .cost-line.disabled .amount,
+    .cost-line.disabled .label,
+    .cost-line.disabled .formula { color: #b6b09d; }
+
+    .cost-note {
+      margin: 1rem 0 0; font-size: .82rem; color: var(--muted); line-height: 1.45;
+    }
+    @media (max-width: 560px) {
+      .cost-controls { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -234,6 +303,82 @@
           Chapter detection uses the PDF's bookmarks where available, otherwise falls back to heading patterns.
         </footer>
       </section>
+
+      <section class="costs" id="costs"
+               data-finished-hours="{{ "%.6f"|format(report.total_finished_hours) }}">
+        <h2>Production cost estimate</h2>
+        <p class="cost-tag">
+          Industry-standard ACX-scale rates, applied to {{ "%.2f"|format(report.total_finished_hours) }} finished hour(s).
+          Slide the levers — numbers update live.
+        </p>
+
+        <div class="cost-controls">
+          <fieldset>
+            <legend>Narrator experience</legend>
+            <div class="seg" id="exp-seg">
+              {% for key, rate in experience_rates.items() %}
+                <label class="{% if experience == key %}active{% endif %}" data-rate="{{ rate }}">
+                  <input type="radio" name="experience" value="{{ key }}"
+                         {% if experience == key %}checked{% endif %}>
+                  {{ key|capitalize }}
+                  <span class="rate-hint">${{ "%.0f"|format(rate) }}/hr</span>
+                </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+
+          <label class="cost-row">
+            <span>Narrator rate ($/finished hr)</span>
+            <input type="number" id="narrator-rate" min="0" max="2000" step="5"
+                   value="{{ "%.0f"|format(narrator_rate) }}">
+          </label>
+
+          <label class="cost-row">
+            <span>Editing &amp; mastering ($/finished hr)</span>
+            <input type="number" id="editing-rate" min="0" max="2000" step="5"
+                   value="{{ "%.0f"|format(editing_rate) }}">
+          </label>
+
+          <label class="cost-row" style="grid-column: 1 / -1;">
+            <span class="with-toggle">
+              <input type="checkbox" id="proofing-on" {% if proofing_on %}checked{% endif %}>
+              Proofing (optional, $/finished hr)
+            </span>
+            <input type="number" id="proofing-rate" min="0" max="2000" step="5"
+                   value="{{ "%.0f"|format(proofing_rate) }}"
+                   {% if not proofing_on %}disabled{% endif %}>
+          </label>
+        </div>
+
+        <div class="cost-table">
+          <div class="cost-line">
+            <span><span class="label">Finished hours</span></span>
+            <span class="amount" id="cost-hours">{{ "%.2f"|format(report.total_finished_hours) }}</span>
+          </div>
+          <div class="cost-line" id="line-narrator">
+            <span><span class="label">Narrator</span><span class="formula" id="formula-narrator"></span></span>
+            <span class="amount" id="cost-narrator">$0</span>
+          </div>
+          <div class="cost-line" id="line-editing">
+            <span><span class="label">Editing &amp; mastering</span><span class="formula" id="formula-editing"></span></span>
+            <span class="amount" id="cost-editing">$0</span>
+          </div>
+          <div class="cost-line {% if not proofing_on %}disabled{% endif %}" id="line-proofing">
+            <span><span class="label">Proofing</span><span class="formula" id="formula-proofing"></span></span>
+            <span class="amount" id="cost-proofing">$0</span>
+          </div>
+          <div class="cost-line total">
+            <span><span class="label">Total</span></span>
+            <span class="amount" id="cost-total">$0</span>
+          </div>
+        </div>
+
+        <p class="cost-note">
+          Per-finished-hour (PFH) is the standard audiobook unit. Typical ranges: narrator $150-400,
+          editing &amp; mastering $50-100, proofing $25-50. These are planning estimates — narrators
+          and studios set their own rates.
+        </p>
+      </section>
     {% endif %}
 
     <section class="tipjar">
@@ -279,6 +424,78 @@
         filenameEl.textContent = ev.dataTransfer.files[0].name;
       }
     });
+
+    // Cost calculator — live recalc as the user adjusts rates.
+    const costSection = document.getElementById('costs');
+    if (costSection) {
+      const hours = parseFloat(costSection.dataset.finishedHours) || 0;
+      const narratorRate = document.getElementById('narrator-rate');
+      const editingRate = document.getElementById('editing-rate');
+      const proofingRate = document.getElementById('proofing-rate');
+      const proofingOn = document.getElementById('proofing-on');
+      const expLabels = document.querySelectorAll('#exp-seg label');
+      const proofingLine = document.getElementById('line-proofing');
+
+      const money = n =>
+        '$' + (Math.round(n)).toLocaleString('en-US');
+      const rateFmt = r =>
+        ' = ' + hours.toFixed(2) + ' hr × $' + (parseFloat(r) || 0).toFixed(0) + '/hr';
+
+      function recalc() {
+        const nr = parseFloat(narratorRate.value) || 0;
+        const er = parseFloat(editingRate.value) || 0;
+        const proofingActive = proofingOn.checked;
+        const pr = proofingActive ? (parseFloat(proofingRate.value) || 0) : 0;
+
+        const nCost = hours * nr;
+        const eCost = hours * er;
+        const pCost = hours * pr;
+
+        document.getElementById('cost-narrator').textContent = money(nCost);
+        document.getElementById('cost-editing').textContent = money(eCost);
+        document.getElementById('cost-proofing').textContent = money(pCost);
+        document.getElementById('cost-total').textContent = money(nCost + eCost + pCost);
+
+        document.getElementById('formula-narrator').textContent = rateFmt(nr);
+        document.getElementById('formula-editing').textContent = rateFmt(er);
+        document.getElementById('formula-proofing').textContent =
+          proofingActive ? rateFmt(pr) : ' — disabled';
+
+        proofingRate.disabled = !proofingActive;
+        proofingLine.classList.toggle('disabled', !proofingActive);
+      }
+
+      expLabels.forEach(lbl => {
+        lbl.addEventListener('click', () => {
+          expLabels.forEach(l => l.classList.remove('active'));
+          lbl.classList.add('active');
+          const r = lbl.getAttribute('data-rate');
+          if (r) narratorRate.value = Math.round(parseFloat(r));
+          recalc();
+        });
+      });
+
+      // If the user types a custom narrator rate, unhighlight the presets.
+      narratorRate.addEventListener('input', () => {
+        const v = parseFloat(narratorRate.value);
+        let matched = false;
+        expLabels.forEach(l => {
+          const r = parseFloat(l.getAttribute('data-rate'));
+          const active = Math.round(r) === Math.round(v);
+          l.classList.toggle('active', active);
+          if (active) matched = true;
+        });
+        if (!matched) expLabels.forEach(l => l.classList.remove('active'));
+        recalc();
+      });
+
+      [editingRate, proofingRate, proofingOn].forEach(el => {
+        el.addEventListener('input', recalc);
+        el.addEventListener('change', recalc);
+      });
+
+      recalc();
+    }
   </script>
 </body>
 </html>
