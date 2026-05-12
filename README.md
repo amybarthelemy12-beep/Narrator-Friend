@@ -1,10 +1,11 @@
 # Narrator Friend
 
-A manuscript breakdown tool for audiobook narrators. Drop in a PDF or .docx and get a per-chapter report:
+A manuscript breakdown tool for audiobook narrators **and authors**. Drop in a PDF or .docx and get a per-chapter report:
 
 - **Word counts** — total, dialogue, narration, dialogue tags
 - **POV detection** — picks up character names used as chapter sub-headers (handy for duet audiobooks)
 - **Recording time estimate** — based on a configurable finished-words-per-hour rate (defaults to ACX-style 9,300 wph)
+- **Production cost estimate** — narrator fee + editing/mastering + optional proofing, all ACX-scale per-finished-hour. Toggle narrator experience (new / mid / experienced) and slide the rates live.
 - **Chapter detection** — uses the PDF's bookmarks (or DOCX Heading 1 styles) where present, falls back to heading patterns (`Chapter 1`, `CHAPTER ONE`, `Prologue`, `Part II`…)
 - **US + UK quote styles** — auto-detects single-quote (UK) vs double-quote (US) dialogue, including `don't`-style apostrophes inside dialogue.
 
@@ -22,6 +23,10 @@ pip install -r requirements.txt
 python -m narrator_friend path/to/manuscript.pdf
 python -m narrator_friend manuscript.docx --wph 9500
 python -m narrator_friend manuscript.pdf --json > report.json
+
+# With cost estimate (defaults to mid-tier $275/hr narrator, $75/hr editing).
+python -m narrator_friend manuscript.pdf --experience experienced
+python -m narrator_friend manuscript.pdf --narrator-rate 200 --editing-rate 90 --proofing-rate 40
 ```
 
 Example output:

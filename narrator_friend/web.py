@@ -9,6 +9,13 @@ from pathlib import Path
 from flask import Flask, render_template, request
 
 from .analyzer import DEFAULT_WORDS_PER_HOUR
+from .costs import (
+    DEFAULT_EDITING_RATE,
+    DEFAULT_EXPERIENCE,
+    DEFAULT_NARRATOR_RATE,
+    DEFAULT_PROOFING_RATE,
+    EXPERIENCE_RATES,
+)
 from .parser import SUPPORTED_EXTENSIONS, parse_manuscript
 from .report import build_report
 
@@ -17,11 +24,30 @@ VENMO_URL = "https://venmo.com/u/Amy-barthelemy12"
 VENMO_HANDLE = "@Amy-barthelemy12"
 
 
+def _float_or(default: float, raw: str | None, lo: float = 0.0, hi: float = 10000.0) -> float:
+    try:
+        v = float(raw) if raw not in (None, "") else default
+    except ValueError:
+        v = default
+    return max(lo, min(v, hi))
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 
-    def _render(report=None, error=None, wph=DEFAULT_WORDS_PER_HOUR, filename=None, status=200):
+    def _render(
+        report=None,
+        error=None,
+        wph=DEFAULT_WORDS_PER_HOUR,
+        filename=None,
+        experience=DEFAULT_EXPERIENCE,
+        narrator_rate=DEFAULT_NARRATOR_RATE,
+        editing_rate=DEFAULT_EDITING_RATE,
+        proofing_rate=DEFAULT_PROOFING_RATE,
+        proofing_on=False,
+        status=200,
+    ):
         return render_template(
             "index.html",
             report=report,
@@ -30,6 +56,12 @@ def create_app() -> Flask:
             filename=filename,
             venmo_url=VENMO_URL,
             venmo_handle=VENMO_HANDLE,
+            experience=experience,
+            experience_rates=EXPERIENCE_RATES,
+            narrator_rate=narrator_rate,
+            editing_rate=editing_rate,
+            proofing_rate=proofing_rate,
+            proofing_on=proofing_on,
         ), status
 
     @app.get("/")
@@ -56,6 +88,16 @@ def create_app() -> Flask:
             wph = DEFAULT_WORDS_PER_HOUR
         wph = max(1000, min(wph, 30000))
 
+        experience = request.form.get("experience") or DEFAULT_EXPERIENCE
+        if experience not in EXPERIENCE_RATES:
+            experience = DEFAULT_EXPERIENCE
+        preset_rate = EXPERIENCE_RATES[experience]
+
+        narrator_rate = _float_or(preset_rate, request.form.get("narrator_rate"), lo=0.0, hi=2000.0)
+        editing_rate = _float_or(DEFAULT_EDITING_RATE, request.form.get("editing_rate"), lo=0.0, hi=2000.0)
+        proofing_rate = _float_or(DEFAULT_PROOFING_RATE, request.form.get("proofing_rate"), lo=0.0, hi=2000.0)
+        proofing_on = bool(request.form.get("proofing_on"))
+
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
             tmp_path = tmp.name
             upload.save(tmp_path)
@@ -68,6 +110,11 @@ def create_app() -> Flask:
                 error=f"Couldn't read that file: {exc}",
                 wph=wph,
                 filename=upload.filename,
+                experience=experience,
+                narrator_rate=narrator_rate,
+                editing_rate=editing_rate,
+                proofing_rate=proofing_rate,
+                proofing_on=proofing_on,
                 status=400,
             )
         finally:
@@ -76,7 +123,16 @@ def create_app() -> Flask:
             except OSError:
                 pass
 
-        body, _status = _render(report=report, wph=wph, filename=upload.filename)
+        body, _status = _render(
+            report=report,
+            wph=wph,
+            filename=upload.filename,
+            experience=experience,
+            narrator_rate=narrator_rate,
+            editing_rate=editing_rate,
+            proofing_rate=proofing_rate,
+            proofing_on=proofing_on,
+        )
         return body
 
     @app.errorhandler(413)
